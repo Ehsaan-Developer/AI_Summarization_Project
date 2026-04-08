@@ -3,7 +3,12 @@ import numpy as np
 import json
 import os
 import nltk
-nltk.download('punkt')
+
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('punkt_tab')
 from nltk.tokenize import sent_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
