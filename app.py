@@ -9,7 +9,7 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
-# ---------------- CUSTOM CSS (PREMIUM UI) ----------------
+# ---------------- CUSTOM CSS ----------------
 st.markdown("""
 <style>
 .main {
@@ -46,12 +46,16 @@ if "text_data" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
+# 🔥 NEW
+if "last_algorithm" not in st.session_state:
+    st.session_state.last_algorithm = None
+
 # ---------------- HEADER ----------------
 st.title("AI Text Summarizer")
 st.caption("Smart text summarization using NLP")
 
 # ---------------- NAVIGATION ----------------
-col_nav1, col_nav2 = st.columns([1,1])
+col_nav1, col_nav2 = st.columns([1, 1])
 
 with col_nav1:
     if st.button("Home"):
@@ -106,7 +110,7 @@ def tfidf_summary(sentences, length):
 def ai_summary(sentences, length):
     scores = []
     for i, s in enumerate(sentences):
-        score = len(s.split()) + (1/(i+1))
+        score = len(s.split()) + (1 / (i + 1))
         scores.append(score)
     return sorted(np.array(scores).argsort()[-length:])
 
@@ -131,8 +135,8 @@ if st.session_state.page == "history":
 
     st.stop()
 
-# ---------------- MAIN LAYOUT ----------------
-col1, col2 = st.columns([2,1])
+# ---------------- MAIN ----------------
+col1, col2 = st.columns([2, 1])
 
 # -------- INPUT --------
 with col1:
@@ -175,13 +179,43 @@ with col2:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------- CLEAR --------
+# ---------------- CLEAR ----------------
 if clear:
     st.session_state.result = None
     st.session_state.text_data = ""
     st.rerun()
 
-# -------- GENERATE --------
+# ---------------- AUTO CHANGE FIX ----------------
+if st.session_state.last_algorithm and st.session_state.last_algorithm != algorithm:
+    st.session_state.result = None
+
+    if text:
+        sentences = split_sentences(text)
+
+        if sentences:
+            with st.spinner("Regenerating summary..."):
+                if algorithm == "TF-IDF":
+                    idx = tfidf_summary(sentences, length)
+                else:
+                    idx = ai_summary(sentences, length)
+
+                summary = "\n".join([sentences[i] for i in idx])
+
+            result = {
+                "algorithm": algorithm,
+                "length": length,
+                "summary": summary
+            }
+
+            st.session_state.result = result
+            save_to_history(result)
+
+            st.session_state.last_algorithm = algorithm
+            st.rerun()
+
+st.session_state.last_algorithm = algorithm
+
+# ---------------- GENERATE ----------------
 if generate and text:
     sentences = split_sentences(text)
 
@@ -201,11 +235,13 @@ if generate and text:
         }
 
         st.session_state.result = result
+        st.session_state.last_algorithm = algorithm
+
         save_to_history(result)
 
         st.rerun()
 
-# -------- OUTPUT --------
+# ---------------- OUTPUT ----------------
 if st.session_state.result:
     st.markdown("---")
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
@@ -223,6 +259,6 @@ if st.session_state.result:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------- FOOTER --------
+# ---------------- FOOTER ----------------
 st.markdown("---")
 st.markdown("Developed by Ehsaan Tawakly")
