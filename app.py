@@ -21,7 +21,7 @@ if "text_data" not in st.session_state:
 
 # ---------------- HEADER ----------------
 st.title("AI Text Summarizer")
-st.caption("NLP-based text summarization system")
+st.caption("TF-IDF and AI-based Smart Summarization")
 
 # ---------------- NAVIGATION ----------------
 col_nav1, col_nav2 = st.columns([1,1])
@@ -68,13 +68,27 @@ def save_pdf(text, filename):
 def split_sentences(text):
     return [s.strip() for s in re.split(r'(?<=[.!?]) +', text) if s.strip()]
 
-# ---------------- FREQUENCY ----------------
-def frequency_scores(sentences):
-    word_freq = {}
-    for sentence in sentences:
-        for word in sentence.lower().split():
-            word_freq[word] = word_freq.get(word, 0) + 1
-    return np.array([sum(word_freq[word] for word in s.lower().split()) for s in sentences])
+# ---------------- TF-IDF ----------------
+def tfidf_summary(sentences, length):
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(sentences)
+    scores = np.array(tfidf_matrix.sum(axis=1)).flatten()
+    top_indices = scores.argsort()[-length:]
+    return sorted(top_indices)
+
+# ---------------- AI SMART SUMMARY ----------------
+def ai_smart_summary(sentences, length):
+    # improved scoring using sentence length + position + frequency
+    scores = []
+    for i, sentence in enumerate(sentences):
+        length_score = len(sentence.split())
+        position_score = 1 / (i + 1)
+        score = length_score + position_score
+        scores.append(score)
+
+    scores = np.array(scores)
+    top_indices = scores.argsort()[-length:]
+    return sorted(top_indices)
 
 # ---------------- HISTORY PAGE ----------------
 if st.session_state.page == "history":
@@ -121,13 +135,13 @@ with col1:
 with col2:
     st.subheader("Settings")
 
-    algorithm = st.selectbox("Algorithm", ["TF-IDF", "Frequency"])
+    algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart Summary"])
 
     length = st.number_input(
         "Summary Length",
         min_value=1,
         max_value=20,
-        value=10   # default 10
+        value=10
     )
 
     col_btn1, col_btn2 = st.columns(2)
@@ -155,16 +169,11 @@ if generate and text:
         with st.spinner("Processing..."):
 
             if algorithm == "TF-IDF":
-                vectorizer = TfidfVectorizer(stop_words='english')
-                tfidf_matrix = vectorizer.fit_transform(sentences)
-                scores = np.array(tfidf_matrix.sum(axis=1)).flatten()
+                indices = tfidf_summary(sentences, length)
             else:
-                scores = frequency_scores(sentences)
+                indices = ai_smart_summary(sentences, length)
 
-            top_indices = scores.argsort()[-length:]
-            top_indices = sorted(top_indices)
-
-            summary = "\n".join([sentences[i] for i in top_indices])
+            summary = "\n".join([sentences[i] for i in indices])
 
         result = {
             "algorithm": algorithm,
