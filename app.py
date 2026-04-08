@@ -9,12 +9,21 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
-# ----------- INIT STATE -----------
-if "length" not in st.session_state:
-    st.session_state.length = 3
+# ----------- HEADER -----------
+st.title("🧠 AI Text Summarizer")
+st.caption("Generate smart summaries using NLP techniques")
 
-if "algorithm" not in st.session_state:
-    st.session_state.algorithm = "TF-IDF"
+# ----------- SIDEBAR -----------
+with st.sidebar:
+    st.title("ℹ️ About")
+    st.write("This AI Text Summarizer is developed by **Ehsaan Tawakly**.")
+    st.write("It uses NLP techniques like TF-IDF and Frequency scoring.")
+    st.markdown("---")
+    st.write("⚡ Features:")
+    st.write("- TF-IDF Summarization")
+    st.write("- Frequency-based Summarization")
+    st.write("- PDF Download")
+    st.write("- History Tracking")
 
 # ----------- HISTORY -----------
 HISTORY_FILE = "history.json"
@@ -63,10 +72,14 @@ def frequency_scores(sentences):
         for s in sentences
     ])
 
-# ----------- UI -----------
-st.title("🧠 AI Text Summarizer")
-st.caption("Smart NLP-based summarization")
+# ----------- SESSION STATE -----------
+if "length" not in st.session_state:
+    st.session_state.length = 3
 
+if "algorithm" not in st.session_state:
+    st.session_state.algorithm = "TF-IDF"
+
+# ----------- LAYOUT -----------
 col1, col2 = st.columns([2, 1])
 
 # -------- INPUT --------
@@ -139,4 +152,12 @@ with col2:
     st.markdown("### 💡 Tips")
     st.write("- Use clean text")
     st.write("- Large text = better summary")
-    st.write("- TF-IDF gives smarter results")
+
+# -------- FOOTER --------
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: gray;'>"
+    "Developed by <b>Ehsaan Tawakly</b> 🚀"
+    "</div>",
+    unsafe_allow_html=True
+)
