@@ -7,16 +7,24 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-# ---------------- CONFIG ----------------
-st.set_page_config(page_title="AI Summarizer", layout="wide")
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(
+    page_title="AI Text Summarizer",
+    page_icon="🧠",
+    layout="wide"
+)
 
-# ---------------- CSS (FIXED + PREMIUM) ----------------
+# ---------------- CUSTOM CSS ----------------
 st.markdown("""
 <style>
 .block-container {
     padding-top: 2rem;
     max-width: 1200px;
     margin: auto;
+}
+.header {
+    text-align: center;
+    padding-bottom: 10px;
 }
 .section-box {
     padding: 25px;
@@ -33,6 +41,12 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ---------------- HEADER (VISIBLE TITLE) ----------------
+st.markdown("<div class='header'>", unsafe_allow_html=True)
+st.title("🧠 AI Text Summarizer")
+st.caption("Smart summarization using TF-IDF & AI Logic")
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------- SESSION ----------------
 if "result" not in st.session_state:
@@ -133,7 +147,7 @@ col1, col2 = st.columns([2,1])
 with col1:
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    st.subheader("Input")
+    st.subheader("Input Text")
 
     uploaded = st.file_uploader("Upload .txt file")
 
@@ -166,7 +180,7 @@ if clear:
     st.session_state.text_data = ""
     st.rerun()
 
-# ---------------- ALGO CHANGE RESET ----------------
+# ---------------- RESET ON ALGO CHANGE ----------------
 if st.session_state.prev_algorithm != algorithm:
     st.session_state.result = None
 
@@ -190,7 +204,6 @@ if generate and text:
             "summary": summary
         }
 
-        # Save old to history
         if st.session_state.result:
             save_to_history(st.session_state.result)
 
