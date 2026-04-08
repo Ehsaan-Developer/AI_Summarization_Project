@@ -9,24 +9,17 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
-# ---------------- CUSTOM CSS ----------------
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
-.main {
-    padding: 2rem;
-}
+.main { padding: 2rem; }
 .stButton>button {
     width: 100%;
     border-radius: 10px;
     height: 45px;
     font-size: 16px;
 }
-.stTextArea textarea {
-    border-radius: 10px;
-}
-.block-container {
-    padding-top: 2rem;
-}
+.stTextArea textarea { border-radius: 10px; }
 .section-box {
     padding: 20px;
     border-radius: 12px;
@@ -46,26 +39,9 @@ if "text_data" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-# 🔥 NEW
+# 🔥 IMPORTANT FIX
 if "last_algorithm" not in st.session_state:
     st.session_state.last_algorithm = None
-
-# ---------------- HEADER ----------------
-st.title("AI Text Summarizer")
-st.caption("Smart text summarization using NLP")
-
-# ---------------- NAVIGATION ----------------
-col_nav1, col_nav2 = st.columns([1, 1])
-
-with col_nav1:
-    if st.button("Home"):
-        st.session_state.page = "home"
-        st.rerun()
-
-with col_nav2:
-    if st.button("History"):
-        st.session_state.page = "history"
-        st.rerun()
 
 # ---------------- HISTORY ----------------
 HISTORY_FILE = "history.json"
@@ -95,18 +71,17 @@ def save_pdf(text, filename):
     c.save()
     return filename
 
-# ---------------- SPLIT ----------------
+# ---------------- TEXT PROCESSING ----------------
 def split_sentences(text):
     return [s.strip() for s in re.split(r'(?<=[.!?]) +', text) if s.strip()]
 
-# ---------------- TF-IDF ----------------
+# ---------------- ALGORITHMS ----------------
 def tfidf_summary(sentences, length):
     vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = vectorizer.fit_transform(sentences)
     scores = np.array(tfidf_matrix.sum(axis=1)).flatten()
     return sorted(scores.argsort()[-length:])
 
-# ---------------- AI SUMMARY ----------------
 def ai_summary(sentences, length):
     scores = []
     for i, s in enumerate(sentences):
@@ -135,18 +110,19 @@ if st.session_state.page == "history":
 
     st.stop()
 
-# ---------------- MAIN ----------------
+# ---------------- UI ----------------
+st.title("AI Text Summarizer")
+
 col1, col2 = st.columns([2, 1])
 
 # -------- INPUT --------
 with col1:
-    st.markdown('<div class="section-box">', unsafe_allow_html=True)
     st.subheader("Input Text")
 
     uploaded_file = st.file_uploader("Upload .txt file", type=["txt"])
 
     text_input = st.text_area(
-        "Or paste text",
+        "Paste text",
         height=200,
         value=st.session_state.text_data
     )
@@ -158,42 +134,34 @@ with col1:
         text = text_input
         st.session_state.text_data = text_input
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
 # -------- SETTINGS --------
 with col2:
-    st.markdown('<div class="section-box">', unsafe_allow_html=True)
     st.subheader("Settings")
 
     algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart Summary"])
-
     length = st.number_input("Summary Length", 1, 20, 10)
 
-    colA, colB = st.columns(2)
-
-    with colA:
-        generate = st.button("Generate")
-
-    with colB:
-        clear = st.button("Clear")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    generate = st.button("Generate")
+    clear = st.button("Clear")
 
 # ---------------- CLEAR ----------------
 if clear:
     st.session_state.result = None
     st.session_state.text_data = ""
+    st.session_state.last_algorithm = None
     st.rerun()
 
-# ---------------- AUTO CHANGE FIX ----------------
+# ---------------- AUTO UPDATE ON ALGO CHANGE 🔥 ----------------
 if st.session_state.last_algorithm and st.session_state.last_algorithm != algorithm:
+
+    # Clear previous summary
     st.session_state.result = None
 
     if text:
         sentences = split_sentences(text)
 
         if sentences:
-            with st.spinner("Regenerating summary..."):
+            with st.spinner("Generating new summary..."):
                 if algorithm == "TF-IDF":
                     idx = tfidf_summary(sentences, length)
                 else:
@@ -207,15 +175,17 @@ if st.session_state.last_algorithm and st.session_state.last_algorithm != algori
                 "summary": summary
             }
 
+            # Save new summary
             st.session_state.result = result
             save_to_history(result)
 
             st.session_state.last_algorithm = algorithm
             st.rerun()
 
+# update last algorithm
 st.session_state.last_algorithm = algorithm
 
-# ---------------- GENERATE ----------------
+# ---------------- GENERATE BUTTON ----------------
 if generate and text:
     sentences = split_sentences(text)
 
@@ -235,8 +205,6 @@ if generate and text:
         }
 
         st.session_state.result = result
-        st.session_state.last_algorithm = algorithm
-
         save_to_history(result)
 
         st.rerun()
@@ -244,8 +212,6 @@ if generate and text:
 # ---------------- OUTPUT ----------------
 if st.session_state.result:
     st.markdown("---")
-    st.markdown('<div class="section-box">', unsafe_allow_html=True)
-
     st.subheader("Summary Result")
 
     res = st.session_state.result
@@ -255,9 +221,7 @@ if st.session_state.result:
 
     pdf = save_pdf(res["summary"], "summary.pdf")
     with open(pdf, "rb") as f:
-        st.download_button("Download Summary", f)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.download_button("Download PDF", f)
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
