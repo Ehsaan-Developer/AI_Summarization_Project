@@ -7,22 +7,29 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Summarizer", layout="wide")
 
-# ---------------- CSS ----------------
+# ---------------- CSS (FIXED + PREMIUM) ----------------
 st.markdown("""
 <style>
-.block-container {padding-top: 2rem;}
+.block-container {
+    padding-top: 2rem;
+    max-width: 1200px;
+    margin: auto;
+}
 .section-box {
-    padding: 20px;
+    padding: 25px;
     border-radius: 12px;
-    background-color: #f5f5f5;
+    background: white;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }
 .stButton>button {
     width: 100%;
     height: 45px;
     border-radius: 10px;
+    font-size: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -68,7 +75,7 @@ def save_pdf(text, filename):
     c.save()
     return filename
 
-# ---------------- SENTENCES ----------------
+# ---------------- TEXT ----------------
 def split_sentences(text):
     return [s.strip() for s in re.split(r'(?<=[.!?]) +', text) if s.strip()]
 
@@ -111,7 +118,7 @@ if st.session_state.page == "history":
         for i, item in enumerate(reversed(history), 1):
             st.markdown(f"### Summary {i}")
             st.write(item["algorithm"])
-            st.write(item["length"])
+            st.write(f"Length: {item['length']}")
             st.text(item["summary"])
 
             pdf = save_pdf(item["summary"], f"history_{i}.pdf")
@@ -128,7 +135,7 @@ with col1:
 
     st.subheader("Input")
 
-    uploaded = st.file_uploader("Upload file", type=["txt"])
+    uploaded = st.file_uploader("Upload .txt file")
 
     text_input = st.text_area("Enter text", height=200, value=st.session_state.text_data)
 
@@ -144,7 +151,7 @@ with col1:
 with col2:
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart"], index=0)
+    algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart"])
 
     length = st.number_input("Summary Length", 1, 20, 10)
 
@@ -159,8 +166,8 @@ if clear:
     st.session_state.text_data = ""
     st.rerun()
 
-# ---------------- AUTO RESET ON ALGO CHANGE ----------------
-if st.session_state.prev_algorithm and st.session_state.prev_algorithm != algorithm:
+# ---------------- ALGO CHANGE RESET ----------------
+if st.session_state.prev_algorithm != algorithm:
     st.session_state.result = None
 
 # ---------------- GENERATE ----------------
@@ -168,7 +175,7 @@ if generate and text:
     sentences = split_sentences(text)
 
     if sentences:
-        with st.spinner("Generating..."):
+        with st.spinner("Generating summary..."):
 
             if algorithm == "TF-IDF":
                 idx = tfidf_summary(sentences, length)
@@ -183,7 +190,7 @@ if generate and text:
             "summary": summary
         }
 
-        # save old summary
+        # Save old to history
         if st.session_state.result:
             save_to_history(st.session_state.result)
 
@@ -195,30 +202,23 @@ if generate and text:
 # ---------------- OUTPUT ----------------
 if st.session_state.result:
     st.markdown("---")
+
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    st.subheader("Summary")
+    st.subheader("Summary Result")
 
     res = st.session_state.result
-    st.write(res["algorithm"])
-    st.write(res["length"])
-    st.text(res["summary"])
+
+    st.info(f"Algorithm: {res['algorithm']}")
+    st.info(f"Length: {res['length']}")
+
+    st.success(res["summary"])
 
     pdf = save_pdf(res["summary"], "summary.pdf")
     with open(pdf, "rb") as f:
         st.download_button("Download PDF", f)
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-    # AUTO SCROLL
-    st.markdown(
-        """
-        <script>
-        window.scrollTo(0, document.body.scrollHeight);
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
