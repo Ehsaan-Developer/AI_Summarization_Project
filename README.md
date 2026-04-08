@@ -3,14 +3,14 @@
 A web-based AI text summarization tool built using Streamlit.
 
 ## Features
-- TF-IDF and Frequency-based summarization
+- TF-IDF and AI-based summarization
 - Adjustable summary length
-- PDF export
+- Download Summaries
 - History tracking
 - Clean UI
 
 ## Live Demo
-[Click Here](YOUR_STREAMLIT_LINK)
+[Click Here](https://aisummarizationproject-uos9jar4ngm7jqvjo6eurx.streamlit.app/)
 
 ## Technologies Used
 - Python
