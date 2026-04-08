@@ -9,15 +9,29 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
+# ---------------- SESSION ----------------
+if "results" not in st.session_state:
+    st.session_state.results = []
+
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
 # ---------------- HEADER ----------------
 st.title("AI Text Summarizer")
 st.caption("NLP-based text summarization system")
 
-# ---------------- SIDEBAR ----------------
-with st.sidebar:
-    st.title("About")
-    st.write("Developed by Ehsaan Tawakly")
-    st.write("Supports TF-IDF and Frequency algorithms")
+# ---------------- NAVIGATION ----------------
+col_nav1, col_nav2 = st.columns([1,1])
+
+with col_nav1:
+    if st.button("Home"):
+        st.session_state.page = "home"
+        st.rerun()
+
+with col_nav2:
+    if st.button("History"):
+        st.session_state.page = "history"
+        st.rerun()
 
 # ---------------- HISTORY ----------------
 HISTORY_FILE = "history.json"
@@ -59,15 +73,8 @@ def frequency_scores(sentences):
             word_freq[word] = word_freq.get(word, 0) + 1
     return np.array([sum(word_freq[word] for word in s.lower().split()) for s in sentences])
 
-# ---------------- SESSION ----------------
-if "results" not in st.session_state:
-    st.session_state.results = []
-
-if "show_history" not in st.session_state:
-    st.session_state.show_history = False
-
-# ---------------- HISTORY VIEW ----------------
-if st.session_state.show_history:
+# ---------------- HISTORY PAGE ----------------
+if st.session_state.page == "history":
     st.header("History")
 
     history = load_history()
@@ -85,36 +92,34 @@ if st.session_state.show_history:
             with open(pdf, "rb") as f:
                 st.download_button("Download", f, file_name=f"summary_{i}.pdf")
 
-    if st.button("Back"):
-        st.session_state.show_history = False
     st.stop()
 
-# ---------------- INPUT ----------------
+# ---------------- HOME PAGE ----------------
 col1, col2 = st.columns([2,1])
 
 with col1:
     st.subheader("Input")
 
-    text_input = st.text_area("Enter text", height=200)
+    uploaded_file = st.file_uploader("Upload .txt file", type=["txt"])
+    text_input = st.text_area("Or enter text manually", height=200)
+
+    if uploaded_file:
+        text = uploaded_file.read().decode("utf-8")
+    else:
+        text = text_input
 
 with col2:
     st.subheader("Settings")
 
     algorithm = st.selectbox("Algorithm", ["TF-IDF", "Frequency"])
-
     length = st.number_input("Summary Length", min_value=1, max_value=20, value=5)
 
     generate = st.button("Generate Summary")
-    view_history = st.button("View History")
-
-if view_history:
-    st.session_state.show_history = True
-    st.rerun()
 
 # ---------------- GENERATE ----------------
-if generate and text_input:
+if generate and text:
 
-    sentences = split_sentences(text_input)
+    sentences = split_sentences(text)
 
     if len(sentences) == 0:
         st.warning("No valid sentences found")
@@ -133,7 +138,6 @@ if generate and text_input:
 
             summary = "\n".join([sentences[i] for i in top_indices])
 
-        # Save result
         result = {
             "algorithm": algorithm,
             "length": length,
