@@ -7,22 +7,31 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-st.set_page_config(page_title="AI Summarizer", layout="wide")
+st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
-# ---------------- CSS ----------------
+# ---------------- CUSTOM CSS (PREMIUM UI) ----------------
 st.markdown("""
 <style>
-.block-container {padding-top: 2rem;}
+.main {
+    padding: 2rem;
+}
+.stButton>button {
+    width: 100%;
+    border-radius: 10px;
+    height: 45px;
+    font-size: 16px;
+}
+.stTextArea textarea {
+    border-radius: 10px;
+}
+.block-container {
+    padding-top: 2rem;
+}
 .section-box {
     padding: 20px;
     border-radius: 12px;
     background-color: #f5f5f5;
     margin-bottom: 20px;
-}
-.stButton>button {
-    width: 100%;
-    height: 45px;
-    border-radius: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -37,8 +46,22 @@ if "text_data" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-if "prev_algorithm" not in st.session_state:
-    st.session_state.prev_algorithm = None
+# ---------------- HEADER ----------------
+st.title("AI Text Summarizer")
+st.caption("Smart text summarization using NLP")
+
+# ---------------- NAVIGATION ----------------
+col_nav1, col_nav2 = st.columns([1,1])
+
+with col_nav1:
+    if st.button("Home"):
+        st.session_state.page = "home"
+        st.rerun()
+
+with col_nav2:
+    if st.button("History"):
+        st.session_state.page = "history"
+        st.rerun()
 
 # ---------------- HISTORY ----------------
 HISTORY_FILE = "history.json"
@@ -68,36 +91,24 @@ def save_pdf(text, filename):
     c.save()
     return filename
 
-# ---------------- SENTENCES ----------------
+# ---------------- SPLIT ----------------
 def split_sentences(text):
     return [s.strip() for s in re.split(r'(?<=[.!?]) +', text) if s.strip()]
 
-# ---------------- ALGORITHMS ----------------
+# ---------------- TF-IDF ----------------
 def tfidf_summary(sentences, length):
     vectorizer = TfidfVectorizer(stop_words='english')
     tfidf_matrix = vectorizer.fit_transform(sentences)
     scores = np.array(tfidf_matrix.sum(axis=1)).flatten()
-    return scores.argsort()[-length:]
+    return sorted(scores.argsort()[-length:])
 
+# ---------------- AI SUMMARY ----------------
 def ai_summary(sentences, length):
     scores = []
     for i, s in enumerate(sentences):
         score = len(s.split()) + (1/(i+1))
         scores.append(score)
-    return np.array(scores).argsort()[-length:]
-
-# ---------------- NAV ----------------
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("Home"):
-        st.session_state.page = "home"
-        st.rerun()
-
-with col2:
-    if st.button("History"):
-        st.session_state.page = "history"
-        st.rerun()
+    return sorted(np.array(scores).argsort()[-length:])
 
 # ---------------- HISTORY PAGE ----------------
 if st.session_state.page == "history":
@@ -110,30 +121,34 @@ if st.session_state.page == "history":
     else:
         for i, item in enumerate(reversed(history), 1):
             st.markdown(f"### Summary {i}")
-            st.write(item["algorithm"])
-            st.write(item["length"])
+            st.write(f"Algorithm: {item['algorithm']}")
+            st.write(f"Length: {item['length']}")
             st.text(item["summary"])
 
             pdf = save_pdf(item["summary"], f"history_{i}.pdf")
             with open(pdf, "rb") as f:
-                st.download_button("Download PDF", f, file_name=f"summary_{i}.pdf")
+                st.download_button("Download", f, file_name=f"summary_{i}.pdf")
 
     st.stop()
 
-# ---------------- INPUT ----------------
+# ---------------- MAIN LAYOUT ----------------
 col1, col2 = st.columns([2,1])
 
+# -------- INPUT --------
 with col1:
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.subheader("Input Text")
 
-    st.subheader("Input")
+    uploaded_file = st.file_uploader("Upload .txt file", type=["txt"])
 
-    uploaded = st.file_uploader("Upload file", type=["txt"])
+    text_input = st.text_area(
+        "Or paste text",
+        height=200,
+        value=st.session_state.text_data
+    )
 
-    text_input = st.text_area("Enter text", height=200, value=st.session_state.text_data)
-
-    if uploaded:
-        text = uploaded.read().decode("utf-8")
+    if uploaded_file:
+        text = uploaded_file.read().decode("utf-8")
         st.session_state.text_data = text
     else:
         text = text_input
@@ -141,35 +156,37 @@ with col1:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+# -------- SETTINGS --------
 with col2:
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.subheader("Settings")
 
-    algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart"], index=0)
+    algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart Summary"])
 
     length = st.number_input("Summary Length", 1, 20, 10)
 
-    generate = st.button("Generate")
-    clear = st.button("Clear")
+    colA, colB = st.columns(2)
+
+    with colA:
+        generate = st.button("Generate")
+
+    with colB:
+        clear = st.button("Clear")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- CLEAR ----------------
+# -------- CLEAR --------
 if clear:
     st.session_state.result = None
     st.session_state.text_data = ""
     st.rerun()
 
-# ---------------- AUTO RESET ON ALGO CHANGE ----------------
-if st.session_state.prev_algorithm and st.session_state.prev_algorithm != algorithm:
-    st.session_state.result = None
-
-# ---------------- GENERATE ----------------
+# -------- GENERATE --------
 if generate and text:
     sentences = split_sentences(text)
 
     if sentences:
-        with st.spinner("Generating..."):
-
+        with st.spinner("Generating summary..."):
             if algorithm == "TF-IDF":
                 idx = tfidf_summary(sentences, length)
             else:
@@ -183,43 +200,29 @@ if generate and text:
             "summary": summary
         }
 
-        # save old summary
-        if st.session_state.result:
-            save_to_history(st.session_state.result)
-
         st.session_state.result = result
-        st.session_state.prev_algorithm = algorithm
+        save_to_history(result)
 
         st.rerun()
 
-# ---------------- OUTPUT ----------------
+# -------- OUTPUT --------
 if st.session_state.result:
     st.markdown("---")
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    st.subheader("Summary")
+    st.subheader("Summary Result")
 
     res = st.session_state.result
-    st.write(res["algorithm"])
-    st.write(res["length"])
+    st.write(f"Algorithm: {res['algorithm']}")
+    st.write(f"Length: {res['length']}")
     st.text(res["summary"])
 
     pdf = save_pdf(res["summary"], "summary.pdf")
     with open(pdf, "rb") as f:
-        st.download_button("Download PDF", f)
+        st.download_button("Download Summary", f)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # AUTO SCROLL
-    st.markdown(
-        """
-        <script>
-        window.scrollTo(0, document.body.scrollHeight);
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
-# ---------------- FOOTER ----------------
+# -------- FOOTER --------
 st.markdown("---")
-st.markdown("Made by Ehsaan Tawakly")
+st.markdown("Developed by Ehsaan Tawakly")
