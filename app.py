@@ -10,11 +10,14 @@ from reportlab.pdfgen import canvas
 st.set_page_config(page_title="AI Text Summarizer", layout="wide")
 
 # ---------------- SESSION ----------------
-if "results" not in st.session_state:
-    st.session_state.results = []
+if "result" not in st.session_state:
+    st.session_state.result = None
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
+
+if "text_data" not in st.session_state:
+    st.session_state.text_data = ""
 
 # ---------------- HEADER ----------------
 st.title("AI Text Summarizer")
@@ -101,20 +104,45 @@ with col1:
     st.subheader("Input")
 
     uploaded_file = st.file_uploader("Upload .txt file", type=["txt"])
-    text_input = st.text_area("Or enter text manually", height=200)
+
+    text_input = st.text_area(
+        "Or enter text manually",
+        height=200,
+        value=st.session_state.text_data
+    )
 
     if uploaded_file:
         text = uploaded_file.read().decode("utf-8")
+        st.session_state.text_data = text
     else:
         text = text_input
+        st.session_state.text_data = text_input
 
 with col2:
     st.subheader("Settings")
 
     algorithm = st.selectbox("Algorithm", ["TF-IDF", "Frequency"])
-    length = st.number_input("Summary Length", min_value=1, max_value=20, value=5)
 
-    generate = st.button("Generate Summary")
+    length = st.number_input(
+        "Summary Length",
+        min_value=1,
+        max_value=20,
+        value=10   # default 10
+    )
+
+    col_btn1, col_btn2 = st.columns(2)
+
+    with col_btn1:
+        generate = st.button("Generate Summary")
+
+    with col_btn2:
+        clear = st.button("Clear")
+
+# ---------------- CLEAR ----------------
+if clear:
+    st.session_state.result = None
+    st.session_state.text_data = ""
+    st.rerun()
 
 # ---------------- GENERATE ----------------
 if generate and text:
@@ -144,25 +172,26 @@ if generate and text:
             "summary": summary
         }
 
-        st.session_state.results.append(result)
+        st.session_state.result = result
         save_to_history(result)
 
+        st.rerun()
+
 # ---------------- OUTPUT ----------------
-if st.session_state.results:
+if st.session_state.result:
 
     st.markdown("---")
-    st.header("Generated Summaries")
+    st.header("Generated Summary")
 
-    for idx, res in enumerate(st.session_state.results, 1):
-        st.subheader(f"Summary {idx}")
+    res = st.session_state.result
 
-        st.write(f"Algorithm: {res['algorithm']}")
-        st.write(f"Length: {res['length']}")
-        st.text(res["summary"])
+    st.write(f"Algorithm: {res['algorithm']}")
+    st.write(f"Length: {res['length']}")
+    st.text(res["summary"])
 
-        pdf_file = save_pdf(res["summary"], f"summary_{idx}.pdf")
-        with open(pdf_file, "rb") as f:
-            st.download_button("Download", f, file_name=f"summary_{idx}.pdf")
+    pdf_file = save_pdf(res["summary"], "summary.pdf")
+    with open(pdf_file, "rb") as f:
+        st.download_button("Download", f, file_name="summary.pdf")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
