@@ -115,11 +115,15 @@ with col1:
                 top_indices = scores.argsort()[-st.session_state.length:]
                 top_indices = sorted(top_indices)
 
-            st.subheader("📌 Summary")
+            # ✅ AUTO SCROLL TRICK (IMPORTANT)
+            st.markdown("### 📌 Summary")
 
-            for i in top_indices:
-                st.success(sentences[i])
-                summary_output += sentences[i] + "\n"
+            summary_box = st.container()
+
+            with summary_box:
+                for i in top_indices:
+                    st.success(sentences[i])
+                    summary_output += sentences[i] + "\n"
 
             save_to_history(summary_output)
 
