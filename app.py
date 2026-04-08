@@ -2,14 +2,7 @@ import streamlit as st
 import numpy as np
 import json
 import os
-import nltk
-
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
-from nltk.tokenize import sent_tokenize
+import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -82,6 +75,11 @@ def frequency_scores(sentences):
 
     return np.array(scores)
 
+# ---------------- SENTENCE SPLIT (NO NLTK) ----------------
+def split_sentences(text):
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    return [s.strip() for s in sentences if s.strip()]
+
 # ---------------- TITLE ----------------
 st.title("🧠 AI Text Summarizer")
 st.markdown("✨ Generate smart summaries using TF-IDF & Frequency algorithms")
@@ -109,7 +107,7 @@ summary_output = ""
 
 # ---------------- PROCESSING ----------------
 if text:
-    sentences = sent_tokenize(text)
+    sentences = split_sentences(text)
 
     if len(sentences) > 0:
 
