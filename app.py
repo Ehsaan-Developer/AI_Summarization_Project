@@ -1,9 +1,9 @@
-import nltk
-nltk.download('punkt')
 import streamlit as st
 import numpy as np
 import json
 import os
+import nltk
+nltk.download('punkt')
 from nltk.tokenize import sent_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from reportlab.lib.pagesizes import letter
