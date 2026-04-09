@@ -57,7 +57,15 @@ def load_history():
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+
+                # ✅ FIX: only valid dict entries keep karo
+                valid_data = []
+                for item in data:
+                    if isinstance(item, dict) and "summary" in item:
+                        valid_data.append(item)
+
+                return valid_data
         except:
             return []
     return []
@@ -123,11 +131,17 @@ if st.session_state.page == "history":
     else:
         for i, item in enumerate(reversed(history), 1):
             st.markdown(f"### Summary {i}")
-            st.write(f"Algorithm: {item['algorithm']}")
-            st.write(f"Length: {item['length']}")
-            st.text(item["summary"])
 
-            pdf = save_pdf(item["summary"], f"history_{i}.pdf")
+            # ✅ SAFE ACCESS (no crash)
+            algo = item.get("algorithm", "Unknown")
+            length = item.get("length", "N/A")
+            summary = item.get("summary", "")
+
+            st.write(f"Algorithm: {algo}")
+            st.write(f"Length: {length}")
+            st.text(summary)
+
+            pdf = save_pdf(summary, f"history_{i}.pdf")
             with open(pdf, "rb") as f:
                 st.download_button("Download", f, file_name=f"summary_{i}.pdf")
 
@@ -158,7 +172,6 @@ with col2:
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
     algorithm = st.selectbox("Algorithm", ["TF-IDF", "AI Smart"])
-
     length = st.number_input("Summary Length", 1, 20, 10)
 
     generate = st.button("Generate Summary")
@@ -215,7 +228,6 @@ if st.session_state.result:
 
     st.info(f"Algorithm: {res['algorithm']}")
     st.info(f"Length: {res['length']}")
-
     st.success(res["summary"])
 
     pdf = save_pdf(res["summary"], "summary.pdf")
